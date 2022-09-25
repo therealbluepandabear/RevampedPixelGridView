@@ -24,6 +24,29 @@ class DrawingView @JvmOverloads constructor(
     private val rectPaint = Paint().apply {
         style = Paint.Style.FILL
         color = Color.WHITE
+        setShadowLayer(10f,0f, 0f, Color.argb(100, 0, 0, 0))
+    }
+
+    fun Bitmap.drawTransparent() {
+        val color = Color.parseColor("#d9d9d9")
+
+        for (i_1 in 0 until width) {
+            for (i_2 in 0 until height) {
+                if (i_1 % 2 == 0) {
+                    if (i_2 % 2 == 0) {
+                        setPixel(i_1, i_2, color)
+                    } else {
+                        setPixel(i_1, i_2, Color.WHITE)
+                    }
+                } else {
+                    if (i_2 % 2 != 0) {
+                        setPixel(i_1, i_2, color)
+                    } else {
+                        setPixel(i_1, i_2, Color.WHITE)
+                    }
+                }
+            }
+        }
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -67,7 +90,7 @@ class DrawingView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP -> {
-                drawingViewBitmap.eraseColor(Color.TRANSPARENT)
+                drawingViewBitmap.drawTransparent()
             }
         }
 
