@@ -27,7 +27,7 @@ class DrawingView @JvmOverloads constructor(
         setShadowLayer(10f,0f, 0f, Color.argb(100, 0, 0, 0))
     }
 
-    fun Bitmap.drawTransparent() {
+    private fun Bitmap.drawTransparent() {
         val color = Color.parseColor("#d9d9d9")
 
         for (i_1 in 0 until width) {
