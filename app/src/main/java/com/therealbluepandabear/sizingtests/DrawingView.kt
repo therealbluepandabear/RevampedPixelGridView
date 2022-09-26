@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 
@@ -17,8 +18,8 @@ class DrawingView @JvmOverloads constructor(
     private var scaleWidth = 0f
     private var scaleHeight = 0f
 
-    private var bitmapWidth = 10
-    private var bitmapHeight = 10
+    private var bitmapWidth = 15
+    private var bitmapHeight = 15
 
     private val rectPaint = Paint().apply {
         style = Paint.Style.FILL
@@ -27,20 +28,41 @@ class DrawingView @JvmOverloads constructor(
     }
 
     private fun setScaleWH() {
-        scaleWidth = measuredWidth.toFloat() / drawingViewBitmap.width.toFloat()
-        scaleHeight = measuredHeight.toFloat() / drawingViewBitmap.height.toFloat()
+        scaleWidth = boundingRect.right.toFloat() / drawingViewBitmap.width.toFloat()
+        scaleHeight = boundingRect.bottom.toFloat() / drawingViewBitmap.height.toFloat()
     }
 
     private fun setBoundingRect() {
-        val centerOfCanvas = Point(width / 2, height / 2)
-        val rectW = 1000
-        val rectH = 1000
-        val left = centerOfCanvas.x - rectW / 2
-        val top = centerOfCanvas.y - rectH / 2
-        val right = centerOfCanvas.x + rectW / 2
-        val bottom = centerOfCanvas.y + rectH / 2
+        val ratio = if (bitmapWidth > bitmapHeight) {
+            bitmapHeight.toDouble() / bitmapWidth.toDouble()
+        } else {
+            bitmapWidth.toDouble() / bitmapHeight.toDouble()
+        }
 
-        boundingRect = Rect(left, top, right, bottom)
+        val rectW: Int = if (bitmapWidth > bitmapHeight) {
+            width
+        } else if (bitmapHeight > bitmapWidth) {
+            (height * ratio).toInt()
+        } else {
+            width
+        }
+
+        val rectH: Int = if (bitmapWidth > bitmapHeight)  {
+            (width * ratio).toInt()
+        } else if (bitmapHeight > bitmapWidth) {
+            height
+        } else {
+            width
+        }
+
+        val canvasCenter = Point(width / 2, height / 2)
+
+        val left = canvasCenter.x - rectW / 2
+        val top = canvasCenter.y - rectH / 2
+        val right = canvasCenter.x + rectW / 2
+        val bottom = canvasCenter.y + rectH / 2
+
+        boundingRect = Rect(0, 0, rectW, rectH)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -60,7 +82,7 @@ class DrawingView @JvmOverloads constructor(
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         val coordinateX = ((event.x) / scaleWidth).toInt()
-        val coordinateY = ((event.y) / scaleHeight).toInt()
+        val coordinateY = ((event.y + boundingRect.bottom) / scaleHeight).toInt()
 
         when (event.action) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
