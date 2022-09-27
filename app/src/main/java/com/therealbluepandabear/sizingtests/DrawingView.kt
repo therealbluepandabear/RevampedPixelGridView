@@ -18,8 +18,8 @@ class DrawingView @JvmOverloads constructor(
     private var scaleWidth = 0f
     private var scaleHeight = 0f
 
-    private var bitmapWidth = 15
-    private var bitmapHeight = 15
+    private var bitmapWidth = 5
+    private var bitmapHeight = 6
 
     private val rectPaint = Paint().apply {
         style = Paint.Style.FILL
@@ -28,8 +28,8 @@ class DrawingView @JvmOverloads constructor(
     }
 
     private fun setScaleWH() {
-        scaleWidth = boundingRect.right.toFloat() / drawingViewBitmap.width.toFloat()
-        scaleHeight = boundingRect.bottom.toFloat() / drawingViewBitmap.height.toFloat()
+        scaleWidth = boundingRect.width() / drawingViewBitmap.width.toFloat()
+        scaleHeight = boundingRect.height() / drawingViewBitmap.height.toFloat()
     }
 
     private fun setBoundingRect() {
@@ -62,7 +62,7 @@ class DrawingView @JvmOverloads constructor(
         val right = canvasCenter.x + rectW / 2
         val bottom = canvasCenter.y + rectH / 2
 
-        boundingRect = Rect(0, 0, rectW, rectH)
+        boundingRect = Rect(left, top, right, bottom)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
@@ -77,26 +77,22 @@ class DrawingView @JvmOverloads constructor(
         setBoundingRect()
         setScaleWH()
         requestLayout()
+        drawingViewBitmap.drawTransparent()
     }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        val coordinateX = ((event.x) / scaleWidth).toInt()
-        val coordinateY = ((event.y + boundingRect.bottom) / scaleHeight).toInt()
-
-        when (event.action) {
+        when (event.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                if (coordinateX in 0 until drawingViewBitmap.width && coordinateY in 0 until drawingViewBitmap.height) {
+                if (event.x.toInt() in boundingRect.left..boundingRect.right && event.y.toInt() in boundingRect.top..boundingRect.bottom) {
+                    val coordinateX = ((event.x - boundingRect.left) / scaleWidth).toInt()
+                    val coordinateY = ((event.y - boundingRect.top) / scaleHeight).toInt()
+
                     drawingViewBitmap.setPixel(coordinateX, coordinateY, Color.BLACK)
+                    invalidate()
                 }
             }
-
-            MotionEvent.ACTION_UP -> {
-                drawingViewBitmap.drawTransparent()
-            }
         }
-
-        invalidate()
 
         return true
     }
