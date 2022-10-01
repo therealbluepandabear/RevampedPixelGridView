@@ -4,27 +4,41 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 
 class DrawingView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
-
     private lateinit var drawingViewBitmap: Bitmap
     private lateinit var boundingRect: Rect
 
     private var scaleWidth = 0f
     private var scaleHeight = 0f
 
-    private var bitmapWidth = 5
-    private var bitmapHeight = 6
+    private var bitmapWidth = 11
+    private var bitmapHeight = 11
+
+    private var clipBoundsRect = Rect()
+
+    private var dx = 0f
+    private var dy = 0f
+
+    private var originalX: Float? = null
+    private var originalY: Float? = null
+
+    private var moveMode = true
 
     private val rectPaint = Paint().apply {
         style = Paint.Style.FILL
         color = Color.WHITE
         setShadowLayer(10f,0f, 0f, Color.argb(100, 0, 0, 0))
+    }
+
+    private var currentZoom = 1f
+
+    companion object {
+        const val ZOOM_FACTOR = 0.2f
     }
 
     private fun setScaleWH() {
@@ -65,6 +79,20 @@ class DrawingView @JvmOverloads constructor(
         boundingRect = Rect(left, top, right, bottom)
     }
 
+    fun toggleMoveMode() {
+        moveMode = !moveMode
+    }
+
+    fun zoomIn() {
+        currentZoom += ZOOM_FACTOR
+        invalidate()
+    }
+
+    fun zoomOut() {
+        currentZoom -= ZOOM_FACTOR
+        invalidate()
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
@@ -80,17 +108,47 @@ class DrawingView @JvmOverloads constructor(
         drawingViewBitmap.drawTransparent()
     }
 
+    private fun doOnTouchEvent(event: MotionEvent) {
+        val x: Float = event.x / currentZoom + clipBoundsRect.left
+        val y: Float = event.y / currentZoom + clipBoundsRect.top
+
+        val coordinateX = ((x - boundingRect.left) / scaleWidth).toInt()
+        val coordinateY = ((y - boundingRect.top) / scaleHeight).toInt()
+
+        if (coordinateX in 0 until drawingViewBitmap.width && coordinateY in 0 until drawingViewBitmap.height) {
+            drawingViewBitmap.setPixel(coordinateX, coordinateY, Color.BLACK)
+            invalidate()
+        }
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                if (event.x.toInt() in boundingRect.left..boundingRect.right && event.y.toInt() in boundingRect.top..boundingRect.bottom) {
-                    val coordinateX = ((event.x - boundingRect.left) / scaleWidth).toInt()
-                    val coordinateY = ((event.y - boundingRect.top) / scaleHeight).toInt()
+            MotionEvent.ACTION_DOWN -> {
+                if (moveMode) {
+                    if (originalX == null && originalY == null) {
+                        originalX = x
+                        originalY = y
+                    }
 
-                    drawingViewBitmap.setPixel(coordinateX, coordinateY, Color.BLACK)
-                    invalidate()
+                    dx = x - event.rawX
+                    dy = y - event.rawY
+                } else {
+                    doOnTouchEvent(event)
                 }
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (moveMode) {
+                    x = event.rawX + dx
+                    y = event.rawY + dy
+                } else {
+                    doOnTouchEvent(event)
+                }
+            }
+
+            MotionEvent.ACTION_UP -> {
+                drawingViewBitmap.drawTransparent()
             }
         }
 
@@ -99,8 +157,12 @@ class DrawingView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         if (::drawingViewBitmap.isInitialized) {
+            canvas.save();
+            canvas.scale(currentZoom, currentZoom, width / 2f, height / 2f)
+            canvas.getClipBounds(clipBoundsRect)
             canvas.drawRect(boundingRect, rectPaint)
             canvas.drawBitmap(drawingViewBitmap, null, boundingRect, null)
+            canvas.restore()
         }
     }
 }
