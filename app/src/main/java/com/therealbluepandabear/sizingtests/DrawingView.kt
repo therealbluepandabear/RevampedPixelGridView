@@ -38,7 +38,7 @@ class DrawingView @JvmOverloads constructor(
     private var currentZoom = 1f
 
     companion object {
-        const val ZOOM_FACTOR = 0.2f
+        const val ZOOM_FACTOR = 0.02f
     }
 
     private fun setScaleWH() {
@@ -157,8 +157,8 @@ class DrawingView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         if (::drawingViewBitmap.isInitialized) {
-            canvas.save();
-            canvas.scale(currentZoom, currentZoom, width / 2f, height / 2f)
+            canvas.save()
+            canvas.scale(currentZoom, currentZoom, (width / 2f) + dx, (height / 2f) + dy)
             canvas.getClipBounds(clipBoundsRect)
             canvas.drawRect(boundingRect, rectPaint)
             canvas.drawBitmap(drawingViewBitmap, null, boundingRect, null)
