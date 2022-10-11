@@ -16,8 +16,8 @@ class DrawingView @JvmOverloads constructor(
     private var scaleWidth = 0f
     private var scaleHeight = 0f
 
-    private var bitmapWidth = 11
-    private var bitmapHeight = 11
+    private var bitmapWidth = 90
+    private var bitmapHeight = 10
 
     private var clipBoundsRect = Rect()
 
@@ -29,13 +29,25 @@ class DrawingView @JvmOverloads constructor(
 
     private var moveMode = true
 
-    private val rectPaint = Paint().apply {
-        style = Paint.Style.FILL
-        color = Color.WHITE
-        setShadowLayer(10f,0f, 0f, Color.argb(100, 0, 0, 0))
-    }
-
     private var currentZoom = 1f
+
+    object PaintData {
+        val rectPaint = Paint().apply {
+            style = Paint.Style.FILL
+            color = Color.WHITE
+            setShadowLayer(10f,0f, 0f, Color.argb(100, 0, 0, 0))
+        }
+
+        var gridPaint = Paint().apply {
+            strokeWidth = 1f
+            pathEffect = null
+            color = Color.BLACK
+            style = Paint.Style.STROKE
+            isDither = true
+            isAntiAlias = true
+            isFilterBitmap = false
+        }
+    }
 
     companion object {
         const val ZOOM_FACTOR = 0.2f
@@ -93,6 +105,36 @@ class DrawingView @JvmOverloads constructor(
         invalidate()
     }
 
+    private fun drawGrid(canvas: Canvas) {
+        var xm = (boundingRect.top).toFloat()
+
+        for (i in 0 .. bitmapHeight) {
+            canvas.drawLine(
+                (boundingRect.left).toFloat(),
+                xm,
+                (boundingRect.right).toFloat(),
+                xm,
+                PaintData.gridPaint
+            )
+
+            xm += scaleHeight
+        }
+
+        var ym = (boundingRect.left).toFloat()
+
+        for (i in 0 .. bitmapWidth) {
+            canvas.drawLine(
+                ym,
+                (boundingRect.top).toFloat(),
+                ym,
+                (boundingRect.bottom).toFloat(),
+                PaintData.gridPaint
+            )
+
+            ym += scaleWidth
+        }
+    }
+
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
 
@@ -105,7 +147,6 @@ class DrawingView @JvmOverloads constructor(
         setBoundingRect()
         setScaleWH()
         requestLayout()
-        drawingViewBitmap.drawTransparent()
     }
 
     private fun doOnTouchEvent(event: MotionEvent) {
@@ -148,7 +189,8 @@ class DrawingView @JvmOverloads constructor(
             }
 
             MotionEvent.ACTION_UP -> {
-                drawingViewBitmap.drawTransparent()
+                drawingViewBitmap.eraseColor(Color.TRANSPARENT)
+                invalidate()
             }
         }
 
@@ -160,8 +202,9 @@ class DrawingView @JvmOverloads constructor(
             canvas.save()
             canvas.scale(currentZoom, currentZoom, width / 2f, height / 2f)
             canvas.getClipBounds(clipBoundsRect)
-            canvas.drawRect(boundingRect, rectPaint)
+            canvas.drawRect(boundingRect, PaintData.rectPaint)
             canvas.drawBitmap(drawingViewBitmap, null, boundingRect, null)
+            drawGrid(canvas)
             canvas.restore()
         }
     }
