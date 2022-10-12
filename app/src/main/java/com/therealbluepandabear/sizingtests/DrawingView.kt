@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 
@@ -16,8 +17,8 @@ class DrawingView @JvmOverloads constructor(
     private var scaleWidth = 0f
     private var scaleHeight = 0f
 
-    private var bitmapWidth = 90
-    private var bitmapHeight = 10
+    private var bitmapWidth = 1
+    private var bitmapHeight = 150
 
     private var clipBoundsRect = Rect()
 
@@ -30,6 +31,9 @@ class DrawingView @JvmOverloads constructor(
     private var moveMode = true
 
     private var currentZoom = 1f
+
+    private var canvasX = 0f
+    private var canvasY = 0f
 
     object PaintData {
         val rectPaint = Paint().apply {
@@ -168,12 +172,12 @@ class DrawingView @JvmOverloads constructor(
             MotionEvent.ACTION_DOWN -> {
                 if (moveMode) {
                     if (originalX == null && originalY == null) {
-                        originalX = x
-                        originalY = y
+                        originalX = canvasX
+                        originalY = canvasY
                     }
 
-                    dx = x - event.rawX
-                    dy = y - event.rawY
+                    dx = canvasX - event.rawX
+                    dy = canvasY - event.rawY
                 } else {
                     doOnTouchEvent(event)
                 }
@@ -181,8 +185,9 @@ class DrawingView @JvmOverloads constructor(
 
             MotionEvent.ACTION_MOVE -> {
                 if (moveMode) {
-                    x = event.rawX + dx
-                    y = event.rawY + dy
+                    canvasX = event.rawX + dx
+                    canvasY = event.rawY + dy
+                    invalidate()
                 } else {
                     doOnTouchEvent(event)
                 }
@@ -200,6 +205,7 @@ class DrawingView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         if (::drawingViewBitmap.isInitialized) {
             canvas.save()
+            canvas.translate(canvasX, canvasY)
             canvas.scale(currentZoom, currentZoom, width / 2f, height / 2f)
             canvas.getClipBounds(clipBoundsRect)
             canvas.drawRect(boundingRect, PaintData.rectPaint)
